@@ -1,0 +1,92 @@
+buildscript {
+    ext {
+        springBootVersion = '2.1.6.RELEASE'
+        mooworkVersion = '1.2.0'
+    }
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        classpath("com.moowork.gradle:gradle-node-plugin:${mooworkVersion}")
+    }
+}
+
+plugins {
+    id 'org.springframework.boot' version '2.1.6.RELEASE'
+    id 'java'
+}
+
+apply plugin: 'java'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'com.moowork.node'
+apply plugin: 'application'
+
+mainClassName = 'com.kwon.portfolio.PortfolioApplication'
+group = 'com.kwon'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '1.8'
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+dependencies {
+//    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:2.1.4'
+    implementation group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: '2.4.1'
+    implementation 'org.junit.jupiter:junit-jupiter:5.4.2'
+    implementation 'org.junit.jupiter:junit-jupiter:5.4.2'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'io.projectreactor:reactor-test'
+//    testImplementation 'org.springframework.security:spring-security-test'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+def webappDir = "$projectDir/frontend"
+
+node {
+    version = '12.6.0'
+    download=true
+    workDir = file("${project.buildDir}/nodejs")
+    npmWorkDir=file("${project.buildDir}/npm")
+}
+
+task appNpmInstall(type: NpmTask) {
+    workingDir = file("${project.projectDir}/frontend")
+    args = ["install"]
+}
+
+task yarnBuild(type: YarnTask) {
+    workingDir = file("${project.projectDir}/frontend")
+    args = ["build"]
+}
+
+task copyWebApp(type: Copy) {
+    from "frontend/build"
+    into 'build/resources/main/static/.'
+}
+
+yarnBuild.dependsOn appNpmInstall
+copyWebApp.dependsOn yarnBuild
+compileJava.dependsOn copyWebApp
